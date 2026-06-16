@@ -32,6 +32,14 @@ class OpenAlexService {
   static const int _perPage = 100;
   static const int listPageSize = 20;
 
+  static const String _apiHost = 'api.openalex.org';
+  static const String _worksPath = '/works';
+  static const String _perPageKey = 'per-page';
+  static const String _mailto = 'prm393.lab2@example.com';
+  static const String _sortCitedByDesc = 'cited_by_count:desc';
+  static const String _quartileQ1Top = 'Q1 (top)';
+  static const String _quartileQ4Low = 'Q4 (low)';
+
   static const String groupByAuthor = 'authorships.author.id';
   static const String groupByJournal = 'primary_location.source.id';
   static const String groupByConcept = 'concepts.id';
@@ -57,6 +65,9 @@ class OpenAlexService {
     return [for (var year = 2016; year <= endYear; year++) year];
   }
 
+  Uri _openAlexUri(String path, [Map<String, String>? query]) =>
+      Uri.https(_apiHost, path, query);
+
   Future<OpenAlexWorksResult> searchPublications(String topic) {
     return fetchSearchPage(topic, page: 1);
   }
@@ -78,7 +89,7 @@ class OpenAlexService {
     for (final author in authors) {
       try {
         final id = author.id.contains('/') ? author.id.split('/').last : author.id;
-        final data = await _getJson(Uri.https('api.openalex.org', '/authors/$id', _authParams()));
+        final data = await _getJson(_openAlexUri( '/authors/$id', _authParams()));
         points.add(
           ScatterPoint(
             label: author.name,
@@ -263,13 +274,13 @@ class OpenAlexService {
         globalInfluential: globalInfluential,
       ),
       'select': _analyticsSelect,
-      'per-page': '${perPage.clamp(1, _perPage)}',
+      _perPageKey: '${perPage.clamp(1, _perPage)}',
       'page': '1',
-      'mailto': 'prm393.lab2@example.com',
+      'mailto': _mailto,
     };
     if (_apiKey.isNotEmpty) params['api_key'] = _apiKey;
 
-    final data = await _getJson(Uri.https('api.openalex.org', '/works', params));
+    final data = await _getJson(_openAlexUri(_worksPath, params));
     final results = data['results'] as List? ?? [];
     return results
         .map((item) => Map<String, dynamic>.from(item as Map))
@@ -283,7 +294,7 @@ class OpenAlexService {
       try {
         final id = inst.id.contains('/') ? inst.id.split('/').last : inst.id;
         final data = await _getJson(
-          Uri.https('api.openalex.org', '/institutions/$id', _authParams()),
+          _openAlexUri( '/institutions/$id', _authParams()),
         );
         final cited = (data['cited_by_count'] as num?)?.toDouble() ?? 0;
         final works = (data['works_count'] as num?)?.toDouble() ?? inst.count.toDouble();
@@ -341,17 +352,17 @@ class OpenAlexService {
     final q1Cut = q(75);
     final q2Cut = q(50);
     final q3Cut = q(25);
-    final buckets = {'Q1 (top)': 0, 'Q2': 0, 'Q3': 0, 'Q4 (low)': 0};
+    final buckets = {_quartileQ1Top: 0, 'Q2': 0, 'Q3': 0, _quartileQ4Low: 0};
 
     for (final c in citations) {
       if (c >= q1Cut) {
-        buckets['Q1 (top)'] = buckets['Q1 (top)']! + 1;
+        buckets[_quartileQ1Top] = buckets[_quartileQ1Top]! + 1;
       } else if (c >= q2Cut) {
         buckets['Q2'] = buckets['Q2']! + 1;
       } else if (c >= q3Cut) {
         buckets['Q3'] = buckets['Q3']! + 1;
       } else {
-        buckets['Q4 (low)'] = buckets['Q4 (low)']! + 1;
+        buckets[_quartileQ4Low] = buckets[_quartileQ4Low]! + 1;
       }
     }
     return buckets;
@@ -646,7 +657,7 @@ class OpenAlexService {
   }
 
   Map<String, String> _authParams() {
-    final p = <String, String>{'mailto': 'prm393.lab2@example.com'};
+    final p = <String, String>{'mailto': _mailto};
     if (_apiKey.isNotEmpty) p['api_key'] = _apiKey;
     return p;
   }
@@ -938,7 +949,7 @@ class OpenAlexService {
     if (id.isEmpty) return null;
 
     final data = await _getJson(
-      Uri.https('api.openalex.org', '/authors/$id', _authParams()),
+      _openAlexUri( '/authors/$id', _authParams()),
     );
 
     return OpenAlexRankedEntity(
@@ -953,12 +964,11 @@ class OpenAlexService {
     if (query.isEmpty) return null;
 
     final data = await _getJson(
-      Uri.https(
-        'api.openalex.org',
+      _openAlexUri(
         '/authors',
         {
           'search': query,
-          'per-page': '1',
+          _perPageKey: '1',
           ..._authParams(),
         },
       ),
@@ -1030,7 +1040,7 @@ class OpenAlexService {
     final page = await _fetchWorksPage(
       {
         'filter': 'ids.openalex:${shortIds.join('|')}',
-        'sort': 'cited_by_count:desc',
+        'sort': _sortCitedByDesc,
       },
       page: 1,
       perPage: limit.clamp(1, _perPage),
@@ -1343,7 +1353,7 @@ class OpenAlexService {
     if (search != null && search.trim().isNotEmpty) {
       return {
         'search': search.trim(),
-        'sort': 'cited_by_count:desc',
+        'sort': _sortCitedByDesc,
       };
     }
 
@@ -1353,7 +1363,7 @@ class OpenAlexService {
     }
 
     return {
-      'sort': 'cited_by_count:desc',
+      'sort': _sortCitedByDesc,
       'filter': filter,
     };
   }
@@ -1364,7 +1374,7 @@ class OpenAlexService {
     bool globalInfluential = false,
   }) {
     return {
-      'sort': 'cited_by_count:desc',
+      'sort': _sortCitedByDesc,
       'filter': _yearFilter(
         year: year,
         search: search,
@@ -1394,7 +1404,7 @@ class OpenAlexService {
     int perPage = listPageSize,
   }) {
     final params = <String, String>{
-      'sort': 'cited_by_count:desc',
+      'sort': _sortCitedByDesc,
       'filter': filter,
     };
 
@@ -1436,7 +1446,7 @@ class OpenAlexService {
       globalInfluential: globalInfluential,
       filterOverride: filterOverride,
     );
-    final url = Uri.https('api.openalex.org', '/works', queryParams);
+    final url = _openAlexUri(_worksPath, queryParams);
     return _getJson(url);
   }
 
@@ -1456,7 +1466,7 @@ class OpenAlexService {
     final queryParams = <String, String>{
       'group_by': groupBy,
       'filter': filter,
-      'mailto': 'prm393.lab2@example.com',
+      'mailto': _mailto,
     };
 
     if (search != null && search.trim().isNotEmpty) {
@@ -1552,17 +1562,17 @@ class OpenAlexService {
   }) async {
     final queryParams = <String, String>{
       ...baseParams,
-      'per-page': '$perPage',
+      _perPageKey: '$perPage',
       'page': '$page',
       'select': baseParams['select'] ?? _selectFields,
-      'mailto': 'prm393.lab2@example.com',
+      'mailto': _mailto,
     };
 
     if (_apiKey.isNotEmpty) {
       queryParams['api_key'] = _apiKey;
     }
 
-    final url = Uri.https('api.openalex.org', '/works', queryParams);
+    final url = _openAlexUri(_worksPath, queryParams);
     final data = await _getJson(url);
 
     final List results = data['results'] ?? [];
@@ -1588,23 +1598,12 @@ class OpenAlexService {
 
     for (var attempt = 0; attempt < _maxRetries; attempt++) {
       try {
-        final response = await http
-            .get(
-              url,
-              headers: const {
-                'Accept': 'application/json',
-                'User-Agent': 'JournalTrendAnalyzer/1.0 (PRM393 Lab2)',
-              },
-            )
-            .timeout(_requestTimeout);
-
-        lastResponse = response;
-
-        if (response.statusCode == 200) {
-          return jsonDecode(response.body) as Map<String, dynamic>;
+        lastResponse = await _performGet(url);
+        if (lastResponse.statusCode == 200) {
+          return jsonDecode(lastResponse.body) as Map<String, dynamic>;
         }
 
-        if (_retryStatusCodes.contains(response.statusCode) &&
+        if (_retryStatusCodes.contains(lastResponse.statusCode) &&
             attempt < _maxRetries - 1) {
           await _backoff(attempt);
           continue;
@@ -1612,30 +1611,27 @@ class OpenAlexService {
 
         break;
       } on TimeoutException {
-        if (attempt < _maxRetries - 1) {
-          await _backoff(attempt);
-          continue;
+        if (attempt >= _maxRetries - 1) {
+          throw OpenAlexException(
+            'OpenAlex không phản hồi (timeout). Server có thể đang quá tải — '
+            'thử đổi Wi‑Fi/4G hoặc bấm Retry.',
+          );
         }
-        throw OpenAlexException(
-          'OpenAlex không phản hồi (timeout). Server có thể đang quá tải — '
-          'thử đổi Wi‑Fi/4G hoặc bấm Retry.',
-        );
+        await _backoff(attempt);
       } on SocketException {
-        if (attempt < _maxRetries - 1) {
-          await _backoff(attempt);
-          continue;
+        if (attempt >= _maxRetries - 1) {
+          throw OpenAlexException(
+            'Không kết nối được OpenAlex. Kiểm tra internet trên thiết bị.',
+          );
         }
-        throw OpenAlexException(
-          'Không kết nối được OpenAlex. Kiểm tra internet trên thiết bị.',
-        );
+        await _backoff(attempt);
       } on http.ClientException catch (e) {
-        if (attempt < _maxRetries - 1) {
-          await _backoff(attempt);
-          continue;
+        if (attempt >= _maxRetries - 1) {
+          throw OpenAlexException(
+            'Lỗi mạng khi gọi OpenAlex: ${e.message}',
+          );
         }
-        throw OpenAlexException(
-          'Lỗi mạng khi gọi OpenAlex: ${e.message}',
-        );
+        await _backoff(attempt);
       }
     }
 
@@ -1646,6 +1642,18 @@ class OpenAlexService {
     throw OpenAlexException(
       'Không tải được dữ liệu từ OpenAlex. Thử lại sau vài phút.',
     );
+  }
+
+  Future<http.Response> _performGet(Uri url) {
+    return http
+        .get(
+          url,
+          headers: const {
+            'Accept': 'application/json',
+            'User-Agent': 'JournalTrendAnalyzer/1.0 (PRM393 Lab2)',
+          },
+        )
+        .timeout(_requestTimeout);
   }
 
   Future<void> _backoff(int attempt) async {

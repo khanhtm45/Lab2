@@ -137,26 +137,39 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
           overflow: TextOverflow.ellipsis,
         ),
       ),
-      body: _loading
-          ? const AppLoadingView(
-              fillScreen: false,
-              expand: true,
-              message: 'Loading domain data...',
-            )
-          : _error != null && insight == null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_error!, textAlign: TextAlign.center),
-                        TextButton(onPressed: _load, child: const Text('Retry')),
-                      ],
-                    ),
-                  ),
-                )
-              : ListView(
+      body: _buildBody(provider, totalCount, insight),
+    );
+  }
+
+  Widget _buildBody(
+    PublicationProvider provider,
+    int totalCount,
+    TrendInsight? insight,
+  ) {
+    if (_loading) {
+      return const AppLoadingView(
+        fillScreen: false,
+        expand: true,
+        message: 'Loading domain data...',
+      );
+    }
+
+    if (_error != null && insight == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_error!, textAlign: TextAlign.center),
+              TextButton(onPressed: _load, child: const Text('Retry')),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView(
                   padding: const EdgeInsets.all(20),
                   children: [
                     MockupCard(
@@ -226,14 +239,7 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                     const SizedBox(height: 12),
                     MockupCard(
                       padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
-                      child: _trend.isEmpty
-                          ? const Text(
-                              'No trend data for this domain.',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                              ),
-                            )
-                          : TrendChart(yearlyData: _trend),
+                      child: _buildTrendSection(),
                     ),
                     const SizedBox(height: 24),
                     const ScreenSectionHeader(
@@ -355,8 +361,17 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                         ),
                       ),
                   ],
-                ),
     );
+  }
+
+  Widget _buildTrendSection() {
+    if (_trend.isEmpty) {
+      return const Text(
+        'No trend data for this domain.',
+        style: TextStyle(color: AppColors.textSecondary),
+      );
+    }
+    return TrendChart(yearlyData: _trend);
   }
 }
 

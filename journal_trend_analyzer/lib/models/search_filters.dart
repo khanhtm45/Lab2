@@ -17,26 +17,6 @@ class SearchFilters {
       minCitations != null ||
       openAccessOnly == true ||
       (publicationType != null && publicationType!.isNotEmpty);
-
-  SearchFilters copyWith({
-    int? publicationYear,
-    int? minCitations,
-    bool? openAccessOnly,
-    String? publicationType,
-    bool clearYear = false,
-    bool clearCitations = false,
-    bool clearOpenAccess = false,
-    bool clearType = false,
-  }) {
-    return SearchFilters(
-      publicationYear: clearYear ? null : (publicationYear ?? this.publicationYear),
-      minCitations:
-          clearCitations ? null : (minCitations ?? this.minCitations),
-      openAccessOnly:
-          clearOpenAccess ? null : (openAccessOnly ?? this.openAccessOnly),
-      publicationType: clearType ? null : (publicationType ?? this.publicationType),
-    );
-  }
 }
 
 enum SearchSortOption {

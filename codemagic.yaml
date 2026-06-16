@@ -1,50 +1,77 @@
 # Codemagic CI — JournalAI (PRM393 Lab 2)
 # Repo layout: Flutter app lives in journal_trend_analyzer/
 #
-# Setup in Codemagic UI (one time):
-# 1. Teams → Personal Account → Integrations → Apple Developer Portal (API key)
-# 2. Code signing identities → iOS → add certificate / enable automatic signing
-# 3. Push this file, then click "Check for configuration file"
+# iOS signed build requires Apple Developer Program ($99/yr):
+# 1. developer.apple.com → Identifiers → register bundle ID (see BUNDLE_ID below)
+# 2. Codemagic → Teams → Integrations → Apple Developer Portal (App Store Connect API key)
+# 3. Codemagic → Code signing identities → iOS → Fetch profiles (App Store) for your bundle ID
+# 4. Uncomment `integrations:` below and set your API key reference name
 #
 # Docs: https://docs.codemagic.io/yaml-quick-start/building-a-flutter-app/
 
 workflows:
+  # Works without Apple signing — use this if you only need to prove iOS compiles in CI.
+  journalai-ios-unsigned:
+    name: JournalAI iOS (unsigned)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    working_directory: journal_trend_analyzer
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install dependencies
+        script: flutter pub get
+      - name: Install CocoaPods dependencies
+        script: find . -name "Podfile" -execdir pod install \;
+      - name: Build iOS debug without code signing
+        script: flutter build ios --debug --no-codesign
+    artifacts:
+      - build/ios/iphoneos/**/*.app
+      - /tmp/xcodebuild_logs/*.log
+
   journalai-ios:
-    name: JournalAI iOS
+    name: JournalAI iOS (signed IPA)
     max_build_duration: 60
     instance_type: mac_mini_m2
     working_directory: journal_trend_analyzer
 
+    # Uncomment after adding App Store Connect API key in Codemagic → Integrations:
+    # integrations:
+    #   app_store_connect: YOUR_APP_STORE_CONNECT_KEY
+
     environment:
       flutter: stable
       xcode: latest
+      cocoapods: default
       ios_signing:
-        distribution_type: development
+        # IPA release needs App Store (or ad_hoc), not development.
+        distribution_type: app_store
         bundle_identifier: com.example.lab2
       vars:
         BUNDLE_ID: com.example.lab2
-        # Optional: add OPENALEX_API_KEY in Codemagic UI → Environment variables
 
     scripts:
       - name: Install dependencies
-        script: |
-          flutter pub get
+        script: flutter pub get
+
+      - name: Install CocoaPods dependencies
+        script: find . -name "Podfile" -execdir pod install \;
+
+      - name: Set up code signing settings on Xcode project
+        script: xcode-project use-profiles
 
       - name: Run analyzer
-        script: |
-          flutter analyze lib
+        script: flutter analyze lib
 
       - name: Build iOS IPA
         script: |
           flutter build ipa --release \
             --build-name=1.0.0 \
-            --build-number=$PROJECT_BUILD_NUMBER
+            --build-number=$PROJECT_BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
 
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-
-    # publishing:
-    #   email:
-    #     recipients:
-    #       - your-email@example.com

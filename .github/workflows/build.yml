@@ -42,5 +42,6 @@ jobs:
           Invoke-WebRequest -Uri "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$version-windows-x64.zip" -OutFile $zip
           Expand-Archive -Path $zip -DestinationPath $sonarDir -Force
           $env:PATH = "$scannerHome\bin;$env:PATH"
-          sonar-scanner -Dsonar.host.url=https://sonarcloud.io
+          # Do not pass -D... on pwsh: PowerShell treats -D as its own flag.
+          sonar-scanner
         shell: pwsh

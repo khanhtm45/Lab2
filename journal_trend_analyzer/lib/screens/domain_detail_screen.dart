@@ -15,7 +15,7 @@ import '../widgets/app_logo.dart';
 import '../widgets/insight_widgets.dart';
 import '../widgets/load_more_footer.dart';
 import '../widgets/publication_card.dart';
-import '../widgets/trend_chart.dart';
+import '../widgets/entity_detail_widgets.dart';
 import '../widgets/ranked_list_widgets.dart';
 import 'author_detail_screen.dart';
 import 'journal_detail_screen.dart';
@@ -239,7 +239,10 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                     const SizedBox(height: 12),
                     MockupCard(
                       padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
-                      child: _buildTrendSection(),
+                      child: TrendSectionCard(
+                        yearlyData: _trend,
+                        emptyMessage: 'No trend data for this domain.',
+                      ),
                     ),
                     const SizedBox(height: 24),
                     const ScreenSectionHeader(
@@ -362,16 +365,6 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                       ),
                   ],
     );
-  }
-
-  Widget _buildTrendSection() {
-    if (_trend.isEmpty) {
-      return const Text(
-        'No trend data for this domain.',
-        style: TextStyle(color: AppColors.textSecondary),
-      );
-    }
-    return TrendChart(yearlyData: _trend);
   }
 }
 

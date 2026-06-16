@@ -10,11 +10,11 @@ import '../utils/count_format.dart';
 import '../utils/research_insights.dart';
 import '../widgets/app_loading_view.dart';
 import '../widgets/app_logo.dart';
+import '../widgets/entity_detail_widgets.dart';
 import '../widgets/insight_widgets.dart';
 import '../widgets/load_more_footer.dart';
 import '../widgets/publication_card.dart';
 import '../widgets/ranked_list_widgets.dart';
-import '../widgets/trend_chart.dart';
 import 'author_detail_screen.dart';
 
 class JournalDetailScreen extends StatefulWidget {
@@ -153,18 +153,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
     }
 
     if (_error != null && _papers.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(_error!),
-            TextButton(
-              onPressed: _loadInitial,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
+      return DetailRetryState(message: _error!, onRetry: _loadInitial);
     }
 
     return ListView(
@@ -187,20 +176,20 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                       child: Row(
                         children: [
                           Expanded(
-                            child: _StatCol(
+                            child: EntityStatCol(
                               label: 'Publications',
                               value: formatOpenAlexCount(totalCount),
                             ),
                           ),
                           Expanded(
-                            child: _StatCol(
+                            child: EntityStatCol(
                               label: 'Avg Citations',
                               value: _avgCitations.toStringAsFixed(0),
                               hint: 'loaded papers',
                             ),
                           ),
                           Expanded(
-                            child: _StatCol(
+                            child: EntityStatCol(
                               label: 'Loaded',
                               value: '${_papers.length}',
                               hint: 'on screen',
@@ -250,7 +239,10 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                     const SizedBox(height: 12),
                     MockupCard(
                       padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
-                      child: _buildTrendSection(),
+                      child: TrendSectionCard(
+                        yearlyData: _trend,
+                        emptyMessage: 'No trend data for this journal.',
+                      ),
                     ),
                     const SizedBox(height: 24),
                     const ScreenSectionHeader(
@@ -308,62 +300,6 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                         ),
                       ),
                   ],
-    );
-  }
-
-  Widget _buildTrendSection() {
-    if (_trend.isEmpty) {
-      return const Text(
-        'No trend data for this journal.',
-        style: TextStyle(color: AppColors.textSecondary),
-      );
-    }
-    return TrendChart(yearlyData: _trend);
-  }
-}
-
-class _StatCol extends StatelessWidget {
-  final String label;
-  final String value;
-  final String? hint;
-
-  const _StatCol({
-    required this.label,
-    required this.value,
-    this.hint,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 11,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
-          ),
-        ),
-        if (hint != null) ...[
-          const SizedBox(height: 2),
-          Text(
-            hint!,
-            style: const TextStyle(
-              color: AppColors.textTertiary,
-              fontSize: 9,
-            ),
-          ),
-        ],
-      ],
     );
   }
 }

@@ -7,6 +7,7 @@ import '../models/advanced_analytics_data.dart';
 import '../models/analytics_catalog.dart';
 import '../models/openalex_ranked_entity.dart';
 import '../theme/app_theme.dart';
+import '../utils/chart_axis.dart';
 import '../utils/count_format.dart';
 
 /// Rút gọn tên quốc gia dài từ OpenAlex.
@@ -25,11 +26,6 @@ String shortCountryLabel(String name) {
   if (name.length <= 18) return name;
   if (name.length == 2 && name == name.toUpperCase()) return name;
   return name;
-}
-
-String _formatSignedPercent(double value, {int fractionDigits = 1}) {
-  final prefix = value >= 0 ? '+' : '';
-  return '$prefix${value.toStringAsFixed(fractionDigits)}%';
 }
 
 double _niceAxisMax(double rawMax) {
@@ -405,10 +401,10 @@ class BubbleAnalyticsChart extends StatelessWidget {
         final borderAlpha = (0.35 + ratio * 0.45).clamp(0.35, 0.9);
         final valueLabel = institutionMode
             ? _formatAxisTick(p.y)
-            : _formatSignedPercent(p.y);
+            : formatSignedPercent(p.y);
         final subtitle = institutionMode
             ? 'Works ${_formatAxisTick(p.x)} · Citations ${_formatAxisTick(p.y)}'
-            : 'Growth ${_formatSignedPercent(p.y)} YoY';
+            : 'Growth ${formatSignedPercent(p.y)} YoY';
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),

@@ -4,8 +4,11 @@ import 'package:provider/provider.dart';
 import '../providers/publication_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/research_insights.dart';
+import '../widgets/app_loading_view.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/insight_widgets.dart';
+import '../widgets/citation_bar_chart.dart';
+import '../widgets/distribution_chart.dart';
 import '../widgets/trend_chart.dart';
 import 'year_detail_screen.dart';
 
@@ -37,16 +40,21 @@ class TrendScreen extends StatefulWidget {
 
 class _TrendScreenState extends State<TrendScreen> {
   TrendMetric _metric = TrendMetric.publications;
+  int? _yearRange; // null = All, 5, 10
 
   Map<int, int> _dataForMetric(PublicationProvider provider) {
+    Map<int, int> raw;
     switch (_metric) {
       case TrendMetric.publications:
-        return provider.yearlyTrendFromOpenAlex;
+        raw = provider.yearlyTrendFromOpenAlex;
       case TrendMetric.citationImpact:
-        return provider.citationsByYearOpenAlex;
+        raw = provider.citationsByYearOpenAlex;
       case TrendMetric.avgCitations:
-        return provider.avgCitationsByYearOpenAlex;
+        raw = provider.avgCitationsByYearOpenAlex;
     }
+    if (_yearRange == null) return raw;
+    final cutoff = DateTime.now().year - _yearRange! + 1;
+    return Map.fromEntries(raw.entries.where((e) => e.key >= cutoff));
   }
 
   String _metricValueLabel() {
@@ -66,7 +74,11 @@ class _TrendScreenState extends State<TrendScreen> {
 
     if (provider.isDashboardLoading && !provider.hasData) {
       return const SafeArea(
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        child: AppLoadingView(
+          fillScreen: false,
+          expand: true,
+          message: 'Loading trends...',
+        ),
       );
     }
 
@@ -91,11 +103,34 @@ class _TrendScreenState extends State<TrendScreen> {
           const Padding(
             padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: Text(
-              'Analytics',
+              'Trends',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
               ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                FilterChip(
+                  label: const Text('5Y'),
+                  selected: _yearRange == 5,
+                  onSelected: (_) => setState(() => _yearRange = 5),
+                ),
+                FilterChip(
+                  label: const Text('10Y'),
+                  selected: _yearRange == 10,
+                  onSelected: (_) => setState(() => _yearRange = 10),
+                ),
+                FilterChip(
+                  label: const Text('All'),
+                  selected: _yearRange == null,
+                  onSelected: (_) => setState(() => _yearRange = null),
+                ),
+              ],
             ),
           ),
           Padding(
@@ -142,11 +177,46 @@ class _TrendScreenState extends State<TrendScreen> {
                     'No chart data.',
                     style: TextStyle(color: AppColors.textSecondary),
                   )
+                else if (_metric == TrendMetric.citationImpact)
+                  MockupCard(
+                    padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
+                    child: CitationBarChart(yearlyData: yearlyData),
+                  )
                 else
                   MockupCard(
                     padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
                     child: TrendChart(yearlyData: yearlyData),
                   ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Publication Type Distribution',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                ),
+                const SizedBox(height: 12),
+                MockupCard(
+                  child: DistributionChart(data: provider.typeDistribution),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Open Access Ratio',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                ),
+                const SizedBox(height: 12),
+                MockupCard(
+                  child: DistributionChart(
+                    data: provider.oaDistribution,
+                    donut: true,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Language Distribution',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                ),
+                const SizedBox(height: 12),
+                MockupCard(
+                  child: DistributionChart(data: provider.languageDistribution),
+                ),
                 const SizedBox(height: 16),
                 MockupCard(
                   child: Column(

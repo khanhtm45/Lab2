@@ -29,7 +29,7 @@ lib/
 
 ## Chạy app
 
-```powershell
+```powershellfcf
 cd PRM393_Lab2_SE182125
 flutter pub get
 flutter run

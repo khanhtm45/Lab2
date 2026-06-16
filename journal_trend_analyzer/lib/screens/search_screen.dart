@@ -6,11 +6,13 @@ import '../providers/publication_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/count_format.dart';
 import '../utils/research_insights.dart';
+import '../widgets/app_loading_view.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/insight_widgets.dart';
 import '../widgets/load_more_footer.dart';
 import '../widgets/publication_card.dart';
+import '../widgets/search_filter_sheets.dart';
 import 'author_detail_screen.dart';
 import 'journal_detail_screen.dart';
 
@@ -26,11 +28,21 @@ class _SearchScreenState extends State<SearchScreen> {
 
   static const _quickExplore = [
     'Artificial Intelligence',
-    'Cybersecurity',
-    'Blockchain',
+    'Machine Learning',
     'Data Science',
+    'Internet of Things',
+    'Blockchain',
+    'Cybersecurity',
     'Generative AI',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PublicationProvider>().loadRecentSearches();
+    });
+  }
 
   Future<void> _search([String? presetTopic]) async {
     if (presetTopic != null) _searchController.text = presetTopic;
@@ -60,7 +72,7 @@ class _SearchScreenState extends State<SearchScreen> {
           const Padding(
             padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: Text(
-              'Explore',
+              'Search',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
             ),
           ),
@@ -71,21 +83,37 @@ class _SearchScreenState extends State<SearchScreen> {
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _search(),
               decoration: InputDecoration(
-                hintText: 'Search research topics...',
+                hintText: 'Search research topic...',
                 prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: loadingPapers
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    : IconButton(
-                        icon: const Icon(Icons.arrow_forward, size: 20),
-                        onPressed: loadingPapers ? null : () => _search(),
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.filter_list,
+                        size: 20,
+                        color: provider.searchFilters.isActive
+                            ? AppColors.primary
+                            : null,
                       ),
+                      onPressed: () => showSearchFilterSheet(context),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.sort, size: 20),
+                      onPressed: () => showSearchSortSheet(context),
+                    ),
+                    if (loadingPapers)
+                      const Padding(
+                        padding: EdgeInsets.all(10),
+                        child: AppLoadingIndicator(size: 22),
+                      )
+                    else
+                      IconButton(
+                        icon: const Icon(Icons.arrow_forward, size: 20),
+                        onPressed: () => _search(),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -97,6 +125,52 @@ class _SearchScreenState extends State<SearchScreen> {
                 onRetry: () => _search(),
               ),
             ),
+          if (!inTopicScope && provider.recentSearches.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Recent Searches',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: provider.clearRecentSearches,
+                        child: const Text('Clear'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: provider.recentSearches.map((topic) {
+                      return ActionChip(
+                        label: Text(topic),
+                        backgroundColor: AppColors.surfaceMuted,
+                        labelStyle: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        side: const BorderSide(color: AppColors.accent),
+                        onPressed:
+                            loadingPapers ? null : () => _search(topic),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (inTopicScope)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -153,11 +227,7 @@ class _ExploreResults extends StatelessWidget {
           MockupCard(
             child: Row(
               children: [
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
+                const AppLoadingIndicator(size: 22),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -380,12 +450,10 @@ class _ExploreResults extends StatelessWidget {
         if (loadingPapers && provider.publications.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+            child: AppLoadingView(
+              fillScreen: false,
+              size: 160,
+              message: 'Searching publications...',
             ),
           )
         else if (provider.publications.isEmpty)

@@ -6,6 +6,7 @@ import '../models/publication.dart';
 import '../providers/publication_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/count_format.dart';
+import '../widgets/app_loading_view.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/load_more_footer.dart';
 import '../widgets/publication_card.dart';
@@ -114,7 +115,11 @@ class _YearDetailScreenState extends State<YearDetailScreen> {
         title: Text('Year ${widget.year}'),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          ? const AppLoadingView(
+              fillScreen: false,
+              expand: true,
+              message: 'Loading year data...',
+            )
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [

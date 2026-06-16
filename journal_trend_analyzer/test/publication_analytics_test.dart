@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:lab2/models/publication.dart';
-import 'package:lab2/models/publication_author.dart';
-import 'package:lab2/utils/publication_analytics.dart';
+import 'package:journal_trend_analyzer/models/publication.dart';
+import 'package:journal_trend_analyzer/models/publication_author.dart';
+import 'package:journal_trend_analyzer/utils/publication_analytics.dart';
 
 void main() {
   group('PublicationAnalytics', () {

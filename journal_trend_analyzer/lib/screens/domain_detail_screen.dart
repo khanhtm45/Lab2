@@ -10,6 +10,7 @@ import '../providers/publication_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/count_format.dart';
 import '../utils/research_insights.dart';
+import '../widgets/app_loading_view.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/insight_widgets.dart';
 import '../widgets/load_more_footer.dart';
@@ -137,7 +138,11 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          ? const AppLoadingView(
+              fillScreen: false,
+              expand: true,
+              message: 'Loading domain data...',
+            )
           : _error != null && insight == null
               ? Center(
                   child: Padding(

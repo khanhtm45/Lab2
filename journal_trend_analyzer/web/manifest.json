@@ -1,11 +1,11 @@
 {
-    "name": "lab2",
-    "short_name": "lab2",
+    "name": "JournalAI",
+    "short_name": "JournalAI",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Journal Trend Analyzer",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -34,11 +36,15 @@ class TrendChart extends StatelessWidget {
       spots.add(FlSpot(i.toDouble(), yearlyData[years[i]]!.toDouble()));
     }
 
-    final maxY = yearlyData.values.reduce((a, b) => a > b ? a : b).toDouble();
-    final minY = yearlyData.values.reduce((a, b) => a < b ? a : b).toDouble();
-    final yPadding = (maxY - minY) * 0.15;
-    final chartMaxY = maxY + (yPadding > 0 ? yPadding : maxY * 0.1);
-    final chartMinY = (minY - yPadding).clamp(0, minY).toDouble();
+    final maxY = yearlyData.values.reduce(math.max).toDouble();
+    final minY = yearlyData.values.reduce(math.min).toDouble();
+    final range = maxY - minY;
+    final padding = range > 0 ? range * 0.15 : math.max(1.0, maxY.abs() * 0.1);
+
+    var chartMinY = minY - padding;
+    var chartMaxY = maxY + padding;
+    if (minY >= 0 && chartMinY < 0) chartMinY = 0;
+    if (chartMaxY <= chartMinY) chartMaxY = chartMinY + 1;
     final yInterval = _niceInterval(chartMaxY - chartMinY);
     final labelInterval = years.length <= 6 ? 1 : (years.length / 5).ceil();
 
@@ -84,14 +90,14 @@ class TrendChart extends StatelessWidget {
               spots: spots,
               isCurved: years.length > 2,
               curveSmoothness: 0.2,
-              color: AppColors.textPrimary,
+              color: AppColors.primary,
               barWidth: 2.5,
               dotData: FlDotData(
                 show: years.length <= 12,
                 getDotPainter: (spot, percent, bar, index) =>
                     FlDotCirclePainter(
                   radius: 3.5,
-                  color: AppColors.textPrimary,
+                  color: AppColors.primary,
                   strokeWidth: 0,
                 ),
               ),

@@ -33,7 +33,7 @@ class AppLoadingView extends StatelessWidget {
           width: size,
           height: size,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => SizedBox(
+          errorBuilder: (_, _, _) => SizedBox(
             width: size * 0.4,
             height: size * 0.4,
             child: const CircularProgressIndicator(
@@ -87,7 +87,7 @@ class AppLoadingIndicator extends StatelessWidget {
       child: Image.asset(
         AppLoadingView._assetPath,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => Padding(
+        errorBuilder: (_, _, _) => Padding(
           padding: EdgeInsets.all(size * 0.15),
           child: const CircularProgressIndicator(
             strokeWidth: 2,

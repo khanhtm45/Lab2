@@ -89,7 +89,7 @@ class OpenAlexService {
     for (final author in authors) {
       try {
         final id = author.id.contains('/') ? author.id.split('/').last : author.id;
-        final data = await _getJson(_openAlexUri( '/authors/$id', _authParams()));
+        final data = await _getJson(_openAlexUri('/authors/$id', _authParams()));
         points.add(
           ScatterPoint(
             label: author.name,
@@ -294,7 +294,7 @@ class OpenAlexService {
       try {
         final id = inst.id.contains('/') ? inst.id.split('/').last : inst.id;
         final data = await _getJson(
-          _openAlexUri( '/institutions/$id', _authParams()),
+          _openAlexUri('/institutions/$id', _authParams()),
         );
         final cited = (data['cited_by_count'] as num?)?.toDouble() ?? 0;
         final works = (data['works_count'] as num?)?.toDouble() ?? inst.count.toDouble();
@@ -949,7 +949,7 @@ class OpenAlexService {
     if (id.isEmpty) return null;
 
     final data = await _getJson(
-      _openAlexUri( '/authors/$id', _authParams()),
+      _openAlexUri('/authors/$id', _authParams()),
     );
 
     return OpenAlexRankedEntity(
@@ -1599,39 +1599,34 @@ class OpenAlexService {
     for (var attempt = 0; attempt < _maxRetries; attempt++) {
       try {
         lastResponse = await _performGet(url);
-        if (lastResponse.statusCode == 200) {
-          return jsonDecode(lastResponse.body) as Map<String, dynamic>;
-        }
+        final decoded = _decodeSuccessfulResponse(lastResponse);
+        if (decoded != null) return decoded;
 
-        if (_retryStatusCodes.contains(lastResponse.statusCode) &&
-            attempt < _maxRetries - 1) {
+        if (_shouldRetryHttpStatus(lastResponse.statusCode, attempt)) {
           await _backoff(attempt);
           continue;
         }
-
         break;
       } on TimeoutException {
-        if (attempt >= _maxRetries - 1) {
-          throw OpenAlexException(
+        await _retryOrThrow(
+          attempt,
+          OpenAlexException(
             'OpenAlex không phản hồi (timeout). Server có thể đang quá tải — '
             'thử đổi Wi‑Fi/4G hoặc bấm Retry.',
-          );
-        }
-        await _backoff(attempt);
+          ),
+        );
       } on SocketException {
-        if (attempt >= _maxRetries - 1) {
-          throw OpenAlexException(
+        await _retryOrThrow(
+          attempt,
+          OpenAlexException(
             'Không kết nối được OpenAlex. Kiểm tra internet trên thiết bị.',
-          );
-        }
-        await _backoff(attempt);
+          ),
+        );
       } on http.ClientException catch (e) {
-        if (attempt >= _maxRetries - 1) {
-          throw OpenAlexException(
-            'Lỗi mạng khi gọi OpenAlex: ${e.message}',
-          );
-        }
-        await _backoff(attempt);
+        await _retryOrThrow(
+          attempt,
+          OpenAlexException('Lỗi mạng khi gọi OpenAlex: ${e.message}'),
+        );
       }
     }
 
@@ -1642,6 +1637,20 @@ class OpenAlexService {
     throw OpenAlexException(
       'Không tải được dữ liệu từ OpenAlex. Thử lại sau vài phút.',
     );
+  }
+
+  Map<String, dynamic>? _decodeSuccessfulResponse(http.Response response) {
+    if (response.statusCode != 200) return null;
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  bool _shouldRetryHttpStatus(int statusCode, int attempt) {
+    return _retryStatusCodes.contains(statusCode) && attempt < _maxRetries - 1;
+  }
+
+  Future<void> _retryOrThrow(int attempt, OpenAlexException error) async {
+    if (attempt >= _maxRetries - 1) throw error;
+    await _backoff(attempt);
   }
 
   Future<http.Response> _performGet(Uri url) {

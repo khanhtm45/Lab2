@@ -86,18 +86,24 @@ class InsightsScreen extends StatelessWidget {
                   onRetry: () => provider.refreshCurrentAnalysis(),
                 ),
               ),
-            TabBar(
-              isScrollable: true,
-              labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.textSecondary,
-              indicatorColor: AppColors.primary,
-              tabs: const [
-                Tab(text: 'Papers'),
-                Tab(text: 'Authors'),
-                Tab(text: 'Journals'),
-                Tab(text: 'Institutions'),
-                Tab(text: 'Countries'),
-              ],
+            Theme(
+              data: Theme.of(context).copyWith(
+                tabBarTheme: const TabBarThemeData(
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textSecondary,
+                  indicatorColor: AppColors.primary,
+                ),
+              ),
+              child: const TabBar(
+                isScrollable: true,
+                tabs: [
+                  Tab(text: 'Papers'),
+                  Tab(text: 'Authors'),
+                  Tab(text: 'Journals'),
+                  Tab(text: 'Institutions'),
+                  Tab(text: 'Countries'),
+                ],
+              ),
             ),
             Expanded(
               child: TabBarView(

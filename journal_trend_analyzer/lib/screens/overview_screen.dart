@@ -33,37 +33,61 @@ class OverviewScreen extends StatelessWidget {
       child: Column(
         children: [
           const JournalAiAppBar(showRefresh: true, showBell: false),
-          if (provider.isDashboardLoading && !provider.hasData)
-            const Expanded(
-              child: AppLoadingView(
-                fillScreen: false,
-                expand: true,
-                message: 'Loading research data...',
-              ),
-            )
-          else if (provider.errorMessage != null && !provider.hasData)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: ErrorBanner(
-                  message: provider.errorMessage!,
-                  onRetry: () => provider.loadDefaultDashboard(),
-                ),
-              ),
-            )
-          else if (!provider.hasData)
-            const Expanded(
-              child: AppLoadingView(
-                fillScreen: false,
-                expand: true,
-                message: 'Loading research data...',
-              ),
-            )
-          else
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () => provider.refreshCurrentAnalysis(),
-                child: ListView(
+          Expanded(child: _OverviewMainArea(provider: provider)),
+        ],
+      ),
+    );
+  }
+}
+
+class _OverviewMainArea extends StatelessWidget {
+  final PublicationProvider provider;
+
+  const _OverviewMainArea({required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    if (provider.isDashboardLoading && !provider.hasData) {
+      return const AppLoadingView(
+        fillScreen: false,
+        expand: true,
+        message: 'Loading research data...',
+      );
+    }
+
+    if (provider.errorMessage != null && !provider.hasData) {
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: ErrorBanner(
+          message: provider.errorMessage!,
+          onRetry: () => provider.loadDefaultDashboard(),
+        ),
+      );
+    }
+
+    if (!provider.hasData) {
+      return const AppLoadingView(
+        fillScreen: false,
+        expand: true,
+        message: 'Loading research data...',
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => provider.refreshCurrentAnalysis(),
+      child: _OverviewDashboardList(provider: provider),
+    );
+  }
+}
+
+class _OverviewDashboardList extends StatelessWidget {
+  final PublicationProvider provider;
+
+  const _OverviewDashboardList({required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                   children: [
                     if (provider.errorMessage != null)
@@ -477,11 +501,10 @@ class OverviewScreen extends StatelessWidget {
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                               ),
-                                              Text(
+                                              const Text(
                                                 'growth vs early period',
-                                                style: const TextStyle(
-                                                  color:
-                                                      AppColors.textSecondary,
+                                                style: TextStyle(
+                                                  color: AppColors.textSecondary,
                                                   fontSize: 10,
                                                 ),
                                               ),
@@ -524,11 +547,6 @@ class OverviewScreen extends StatelessWidget {
                       ),
                     ],
                   ],
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 }

@@ -27,6 +27,11 @@ String shortCountryLabel(String name) {
   return name;
 }
 
+String _formatSignedPercent(double value, {int fractionDigits = 1}) {
+  final prefix = value >= 0 ? '+' : '';
+  return '$prefix${value.toStringAsFixed(fractionDigits)}%';
+}
+
 double _niceAxisMax(double rawMax) {
   if (rawMax <= 0) return 1;
   final padded = rawMax * 1.12;
@@ -256,7 +261,7 @@ class ScatterAnalyticsChart extends StatelessWidget {
               maxX: chartMaxX,
               minY: 0,
               maxY: chartMaxY,
-              clipData: FlClipData.all(),
+              clipData: const FlClipData.all(),
               borderData: FlBorderData(show: false),
               gridData: FlGridData(
                 show: true,
@@ -400,10 +405,10 @@ class BubbleAnalyticsChart extends StatelessWidget {
         final borderAlpha = (0.35 + ratio * 0.45).clamp(0.35, 0.9);
         final valueLabel = institutionMode
             ? _formatAxisTick(p.y)
-            : '${p.y >= 0 ? '+' : ''}${p.y.toStringAsFixed(1)}%';
+            : _formatSignedPercent(p.y);
         final subtitle = institutionMode
             ? 'Works ${_formatAxisTick(p.x)} · Citations ${_formatAxisTick(p.y)}'
-            : 'Growth ${p.y >= 0 ? '+' : ''}${p.y.toStringAsFixed(1)}% YoY';
+            : 'Growth ${_formatSignedPercent(p.y)} YoY';
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),

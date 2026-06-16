@@ -135,30 +135,38 @@ class _AuthorDetailScreenState extends State<AuthorDetailScreen> {
     final author = _author ?? widget.author;
     final totalCount =
         _totalCount > 0 ? _totalCount : author.count;
-    final insight = _insight;
 
     return Scaffold(
       appBar: AppBar(title: Text(author.name)),
-      body: _loading
-          ? const AppLoadingView(
-              fillScreen: false,
-              expand: true,
-              message: 'Loading author data...',
-            )
-          : _error != null && _papers.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_error!),
-                      TextButton(
-                        onPressed: _loadInitial,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView(
+      body: _buildBody(totalCount, _insight),
+    );
+  }
+
+  Widget _buildBody(int totalCount, TrendInsight? insight) {
+    if (_loading) {
+      return const AppLoadingView(
+        fillScreen: false,
+        expand: true,
+        message: 'Loading author data...',
+      );
+    }
+
+    if (_error != null && _papers.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error!),
+            TextButton(
+              onPressed: _loadInitial,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
                   padding: const EdgeInsets.all(20),
                   children: [
                     MockupCard(
@@ -245,9 +253,7 @@ class _AuthorDetailScreenState extends State<AuthorDetailScreen> {
                     const SizedBox(height: 8),
                     if (_papers.isEmpty)
                       Text(
-                        widget.provider.isGlobalScope
-                            ? 'No papers found on OpenAlex for this author.'
-                            : 'No papers by this author in topic "${widget.provider.currentTopic}". Try global dashboard for all works.',
+                        _emptyPapersMessage(),
                         style: const TextStyle(color: AppColors.textSecondary),
                       )
                     else ...[
@@ -298,8 +304,15 @@ class _AuthorDetailScreenState extends State<AuthorDetailScreen> {
                         ),
                       ),
                   ],
-                ),
     );
+  }
+
+  String _emptyPapersMessage() {
+    if (widget.provider.isGlobalScope) {
+      return 'No papers found on OpenAlex for this author.';
+    }
+    return 'No papers by this author in topic "${widget.provider.currentTopic}". '
+        'Try global dashboard for all works.';
   }
 }
 

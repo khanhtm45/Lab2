@@ -74,20 +74,24 @@ Future<void> showSearchFilterSheet(BuildContext context) async {
                     onChanged: (v) => setModalState(() => openAccess = v),
                   ),
                   const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: pubType,
-                    isExpanded: true,
+                  InputDecorator(
                     decoration: const InputDecoration(
                       labelText: 'Publication Type',
                     ),
-                    items: const [
-                      DropdownMenuItem(value: null, child: Text('Any')),
-                      DropdownMenuItem(value: 'article', child: Text('Article')),
-                      DropdownMenuItem(value: 'review', child: Text('Review')),
-                      DropdownMenuItem(value: 'book', child: Text('Book')),
-                      DropdownMenuItem(value: 'dataset', child: Text('Dataset')),
-                    ],
-                    onChanged: (v) => setModalState(() => pubType = v),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: pubType,
+                        isExpanded: true,
+                        items: const [
+                          DropdownMenuItem(value: null, child: Text('Any')),
+                          DropdownMenuItem(value: 'article', child: Text('Article')),
+                          DropdownMenuItem(value: 'review', child: Text('Review')),
+                          DropdownMenuItem(value: 'book', child: Text('Book')),
+                          DropdownMenuItem(value: 'dataset', child: Text('Dataset')),
+                        ],
+                        onChanged: (v) => setModalState(() => pubType = v),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Row(

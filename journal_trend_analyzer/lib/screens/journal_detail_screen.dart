@@ -126,7 +126,6 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
   Widget build(BuildContext context) {
     final totalCount =
         _totalCount > 0 ? _totalCount : widget.journal.count;
-    final insight = _insight;
 
     return Scaffold(
       appBar: AppBar(
@@ -140,26 +139,35 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
           overflow: TextOverflow.ellipsis,
         ),
       ),
-      body: _loading
-          ? const AppLoadingView(
-              fillScreen: false,
-              expand: true,
-              message: 'Loading journal data...',
-            )
-          : _error != null && _papers.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_error!),
-                      TextButton(
-                        onPressed: _loadInitial,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView(
+      body: _buildBody(totalCount, _insight),
+    );
+  }
+
+  Widget _buildBody(int totalCount, TrendInsight? insight) {
+    if (_loading) {
+      return const AppLoadingView(
+        fillScreen: false,
+        expand: true,
+        message: 'Loading journal data...',
+      );
+    }
+
+    if (_error != null && _papers.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error!),
+            TextButton(
+              onPressed: _loadInitial,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
                   padding: const EdgeInsets.all(20),
                   children: [
                     Text(
@@ -242,14 +250,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                     const SizedBox(height: 12),
                     MockupCard(
                       padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
-                      child: _trend.isEmpty
-                          ? const Text(
-                              'No trend data for this journal.',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                              ),
-                            )
-                          : TrendChart(yearlyData: _trend),
+                      child: _buildTrendSection(),
                     ),
                     const SizedBox(height: 24),
                     const ScreenSectionHeader(
@@ -307,8 +308,17 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                         ),
                       ),
                   ],
-                ),
     );
+  }
+
+  Widget _buildTrendSection() {
+    if (_trend.isEmpty) {
+      return const Text(
+        'No trend data for this journal.',
+        style: TextStyle(color: AppColors.textSecondary),
+      );
+    }
+    return TrendChart(yearlyData: _trend);
   }
 }
 

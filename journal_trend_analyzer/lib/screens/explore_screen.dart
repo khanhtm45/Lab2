@@ -30,10 +30,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
     'IoT Security',
   ];
 
+  static const _aiTopic = 'Artificial Intelligence';
+
   static const _comparisonPairs = [
-    ('Artificial Intelligence', 'Blockchain'),
-    ('Artificial Intelligence', 'Internet of Things'),
-    ('Artificial Intelligence', 'Cybersecurity'),
+    (_aiTopic, 'Blockchain'),
+    (_aiTopic, 'Internet of Things'),
+    (_aiTopic, 'Cybersecurity'),
   ];
 
   TopicComparisonResult? _comparison;
@@ -107,6 +109,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<PublicationProvider>();
     final keywords = provider.topResearchAreasOpenAlex.take(6).toList();
+    final networkCenter =
+        provider.isGlobalScope ? 'Research' : provider.currentTopic;
 
     return SafeArea(
       child: ListView(
@@ -126,7 +130,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 24),
-          _SectionTitle('Advanced BI Analytics'),
+          const _SectionTitle('Advanced BI Analytics'),
           const SizedBox(height: 10),
           MockupCard(
             child: Column(
@@ -156,7 +160,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          _SectionTitle('Trending Topics'),
+          const _SectionTitle('Trending Topics'),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -177,7 +181,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 .toList(),
           ),
           const SizedBox(height: 24),
-          _SectionTitle('Research Domains'),
+          const _SectionTitle('Research Domains'),
           const SizedBox(height: 10),
           MockupCard(
             child: Column(
@@ -213,7 +217,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          _SectionTitle('Keyword Network'),
+          const _SectionTitle('Keyword Network'),
           const SizedBox(height: 10),
           MockupCard(
             child: _loadingKeywordGraph && keywords.isEmpty
@@ -223,16 +227,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     message: 'Loading keyword network...',
                   )
                 : KeywordHubNetworkView(
-                    centerLabel: provider.isGlobalScope
-                        ? 'Research'
-                        : provider.currentTopic,
+                    centerLabel: networkCenter,
                     keywords: keywords.map((k) => k.name).toList(),
                     cooccurrence: _keywordGraph,
                     height: 240,
                   ),
           ),
           const SizedBox(height: 24),
-          _SectionTitle('Topic Comparison'),
+          const _SectionTitle('Topic Comparison'),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,

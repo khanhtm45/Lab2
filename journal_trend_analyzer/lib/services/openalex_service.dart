@@ -31,7 +31,6 @@ class OpenAlexService {
 
   static const int _perPage = 100;
   static const int listPageSize = 20;
-  static const int _searchListPages = 3;
 
   static const String groupByAuthor = 'authorships.author.id';
   static const String groupByJournal = 'primary_location.source.id';
@@ -1544,30 +1543,6 @@ class OpenAlexService {
     parsed.sort((a, b) => b.count.compareTo(a.count));
     if (parsed.length <= limit) return parsed;
     return parsed.sublist(0, limit);
-  }
-
-  Future<OpenAlexWorksResult> _fetchWorksPaginated(
-    Map<String, String> baseParams, {
-    int maxPages = _searchListPages,
-  }) async {
-    final publications = <Publication>[];
-    var totalOnOpenAlex = 0;
-
-    for (var page = 1; page <= maxPages; page++) {
-      final pageResult = await _fetchWorksPage(baseParams, page: page);
-
-      totalOnOpenAlex = pageResult.totalOnOpenAlex;
-      publications.addAll(pageResult.publications);
-
-      if (pageResult.publications.length < _perPage) {
-        break;
-      }
-    }
-
-    return OpenAlexWorksResult(
-      publications: publications,
-      totalOnOpenAlex: totalOnOpenAlex,
-    );
   }
 
   Future<OpenAlexWorksResult> _fetchWorksPage(

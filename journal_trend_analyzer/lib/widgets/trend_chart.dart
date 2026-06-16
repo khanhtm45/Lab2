@@ -1,82 +1,9 @@
-import 'dart:math' as math;
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../utils/chart_axis.dart';
 import '../utils/count_format.dart';
-
-class _TrendChartLayout {
-  const _TrendChartLayout({
-    required this.years,
-    required this.spots,
-    required this.chartMinY,
-    required this.chartMaxY,
-    required this.yInterval,
-    required this.labelInterval,
-  });
-
-  final List<int> years;
-  final List<FlSpot> spots;
-  final double chartMinY;
-  final double chartMaxY;
-  final double yInterval;
-  final int labelInterval;
-
-  factory _TrendChartLayout.from(Map<int, int> yearlyData) {
-    final years = yearlyData.keys.toList()..sort();
-    final spots = <FlSpot>[];
-    for (var i = 0; i < years.length; i++) {
-      spots.add(FlSpot(i.toDouble(), yearlyData[years[i]]!.toDouble()));
-    }
-
-    final maxY = yearlyData.values.reduce(math.max).toDouble();
-    final minY = yearlyData.values.reduce(math.min).toDouble();
-    final range = maxY - minY;
-    final padding = range > 0 ? range * 0.15 : math.max(1.0, maxY.abs() * 0.1);
-
-    var chartMinY = minY - padding;
-    var chartMaxY = maxY + padding;
-    if (minY >= 0 && chartMinY < 0) chartMinY = 0;
-    if (chartMaxY <= chartMinY) chartMaxY = chartMinY + 1;
-
-    return _TrendChartLayout(
-      years: years,
-      spots: spots,
-      chartMinY: chartMinY,
-      chartMaxY: chartMaxY,
-      yInterval: _niceInterval(chartMaxY - chartMinY),
-      labelInterval: years.length <= 6 ? 1 : (years.length / 5).ceil(),
-    );
-  }
-}
-
-double _niceInterval(double range) {
-  if (range <= 0) return 1;
-  final raw = range / 4;
-  final magnitude =
-      _pow10(raw.floor().toString().length - 1).clamp(1, 1000000000);
-  final normalized = raw / magnitude;
-  double nice;
-  if (normalized <= 1) {
-    nice = 1;
-  } else if (normalized <= 2) {
-    nice = 2;
-  } else if (normalized <= 5) {
-    nice = 5;
-  } else {
-    nice = 10;
-  }
-  return nice * magnitude;
-}
-
-double _pow10(int exponent) {
-  var value = 1.0;
-  for (var i = 0; i < exponent; i++) {
-    value *= 10;
-  }
-  return value;
-}
 
 /// Line chart — trục X theo thứ tự năm, không hiển thị label trên đỉnh (tránh chồng chữ).
 class TrendChart extends StatelessWidget {
@@ -101,15 +28,21 @@ class TrendChart extends StatelessWidget {
       );
     }
 
-    final layout = _TrendChartLayout.from(yearlyData);
+    final layout = TrendChartLayout.fromYearlyCounts(yearlyData);
+    final spots = <FlSpot>[];
+    for (var i = 0; i < layout.years.length; i++) {
+      spots.add(
+        FlSpot(i.toDouble(), yearlyData[layout.years[i]]!.toDouble()),
+      );
+    }
 
     return SizedBox(
       height: 280,
-      child: LineChart(_buildChartData(layout)),
+      child: LineChart(_buildChartData(layout, spots)),
     );
   }
 
-  LineChartData _buildChartData(_TrendChartLayout layout) {
+  LineChartData _buildChartData(TrendChartLayout layout, List<FlSpot> spots) {
     return LineChartData(
       minX: 0,
       maxX: (layout.years.length - 1).toDouble(),
@@ -126,8 +59,8 @@ class TrendChart extends StatelessWidget {
       borderData: FlBorderData(show: false),
       lineTouchData: LineTouchData(
         touchTooltipData: LineTouchTooltipData(
-          getTooltipItems: (spots) {
-            return spots.map((spot) {
+          getTooltipItems: (tooltipSpots) {
+            return tooltipSpots.map((spot) {
               final index = spot.x.toInt();
               if (index < 0 || index >= layout.years.length) {
                 return null;
@@ -146,7 +79,7 @@ class TrendChart extends StatelessWidget {
       ),
       lineBarsData: [
         LineChartBarData(
-          spots: layout.spots,
+          spots: spots,
           isCurved: layout.years.length > 2,
           curveSmoothness: 0.2,
           color: AppColors.primary,
@@ -165,7 +98,7 @@ class TrendChart extends StatelessWidget {
     );
   }
 
-  FlTitlesData _buildTitles(_TrendChartLayout layout) {
+  FlTitlesData _buildTitles(TrendChartLayout layout) {
     return FlTitlesData(
       rightTitles: const AxisTitles(
         sideTitles: SideTitles(showTitles: false),

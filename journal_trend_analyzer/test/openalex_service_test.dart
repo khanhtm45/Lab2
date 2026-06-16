@@ -14,6 +14,21 @@ void main() {
     });
   });
 
+  group('OpenAlexService pure helpers', () {
+    test('computeCitationVelocity returns year-over-year delta', () {
+      final service = OpenAlexService();
+      final velocity = service.computeCitationVelocity({
+        2020: 100,
+        2021: 150,
+        2022: 120,
+      });
+
+      expect(velocity[2021], 50);
+      expect(velocity[2022], -30);
+      expect(velocity.containsKey(2020), isFalse);
+    });
+  });
+
   group('OpenAlexService live API', () {
     const apiKey = String.fromEnvironment('OPENALEX_API_KEY');
 

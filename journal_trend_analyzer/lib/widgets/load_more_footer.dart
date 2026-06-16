@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'app_loading_view.dart';
 import '../utils/count_format.dart';
 
 class LoadMoreFooter extends StatelessWidget {
@@ -40,11 +41,7 @@ class LoadMoreFooter extends StatelessWidget {
           if (hasMore) ...[
             const SizedBox(height: 8),
             if (isLoading)
-              const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
+              const AppLoadingIndicator(size: 32)
             else
               OutlinedButton(
                 onPressed: onLoadMore,

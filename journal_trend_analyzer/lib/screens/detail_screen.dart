@@ -9,6 +9,8 @@ import '../models/publication_author.dart';
 import '../providers/publication_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/count_format.dart';
+import '../widgets/app_loading_view.dart';
+import '../widgets/related_paper_tile.dart';
 import 'author_detail_screen.dart';
 
 class DetailScreen extends StatefulWidget {
@@ -81,18 +83,20 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   void _openAuthor(PublicationAuthor author) {
-    if (!author.hasOpenAlexId) return;
+    if (!author.hasOpenAlexId && author.name.isEmpty) return;
 
     final provider = context.read<PublicationProvider>();
+    final ranked = provider.rankedAuthorByName(author.name);
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => AuthorDetailScreen(
-          author: OpenAlexRankedEntity(
-            id: author.id,
-            name: author.name,
-            count: 0,
-          ),
+          author: ranked ??
+              OpenAlexRankedEntity(
+                id: author.id,
+                name: author.name,
+                count: 0,
+              ),
           provider: provider,
         ),
       ),
@@ -327,51 +331,79 @@ class _DetailScreenState extends State<DetailScreen> {
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 16),
-              const Text(
-                'Related Papers',
-                style: TextStyle(
-                  fontSize: 12,
-                  letterSpacing: 0.5,
-                  color: AppColors.textSecondary,
-                ),
+              Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceMuted,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.hub_outlined,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Related Papers',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  if (!_loadingRelated && _relatedWorks.isNotEmpty)
+                    Text(
+                      '${_relatedWorks.length}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               if (_loadingRelated)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                const SizedBox(
+                  height: 140,
+                  child: AppLoadingView(
+                    fillScreen: false,
+                    size: 100,
+                    message: 'Loading related papers...',
                   ),
                 )
               else if (_relatedWorks.isEmpty)
-                const Text(
-                  'No related papers loaded from OpenAlex.',
-                  style: TextStyle(color: AppColors.textSecondary),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'No related papers loaded from OpenAlex.',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  ),
                 )
               else
                 ..._relatedWorks.map(
-                  (paper) => Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      title: Text(
-                        paper.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        '${paper.year} · '
-                        '${formatOpenAlexCount(paper.citations)} citations',
-                      ),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => DetailScreen(publication: paper),
-                          ),
-                        );
-                      },
-                    ),
+                  (paper) => RelatedPaperTile(
+                    paper: paper,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DetailScreen(publication: paper),
+                        ),
+                      );
+                    },
                   ),
                 ),
             ],

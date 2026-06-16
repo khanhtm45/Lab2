@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:lab2/models/research_insight.dart';
-import 'package:lab2/utils/research_insights.dart';
+import 'package:journal_trend_analyzer/models/research_insight.dart';
+import 'package:journal_trend_analyzer/utils/research_insights.dart';
 
 void main() {
   test('analyzeTrend computes growth and momentum', () {

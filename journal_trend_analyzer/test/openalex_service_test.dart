@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:lab2/services/openalex_exception.dart';
-import 'package:lab2/services/openalex_service.dart';
+import 'package:journal_trend_analyzer/services/openalex_exception.dart';
+import 'package:journal_trend_analyzer/services/openalex_service.dart';
 
 void main() {
   group('OpenAlexService error mapping', () {

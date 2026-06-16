@@ -46,7 +46,19 @@ class PublicationCard extends StatelessWidget {
                           height: 1.35,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      if (publication.authors.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          publication.authors.take(3).join(', '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 6),
                       Text(
                         publication.journal,
                         maxLines: 1,

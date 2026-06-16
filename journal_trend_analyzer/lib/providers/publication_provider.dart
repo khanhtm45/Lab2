@@ -3,16 +3,26 @@ import 'package:flutter/material.dart';
 import '../models/openalex_ranked_entity.dart';
 import '../models/openalex_works_result.dart';
 import '../models/publication.dart';
+import '../models/search_filters.dart';
 import '../models/research_insight.dart';
+import '../services/openalex_config.dart';
 import '../services/openalex_exception.dart';
 import '../services/openalex_service.dart';
+import '../services/recent_searches_service.dart';
 import '../utils/count_format.dart';
 import '../utils/research_insights.dart';
 
 enum AnalysisScope { global, topic }
 
 class PublicationProvider extends ChangeNotifier {
-  final OpenAlexService _openAlexService = OpenAlexService();
+  PublicationProvider({required OpenAlexConfig config})
+      : _config = config,
+        _openAlexService = OpenAlexService(config),
+        _recentSearchesService = RecentSearchesService();
+
+  final OpenAlexConfig _config;
+  final OpenAlexService _openAlexService;
+  final RecentSearchesService _recentSearchesService;
 
   static const globalTopicLabel = 'Global Research Overview';
 
@@ -26,7 +36,15 @@ class PublicationProvider extends ChangeNotifier {
   List<OpenAlexRankedEntity> topAuthorsOpenAlex = [];
   List<OpenAlexRankedEntity> topJournalsOpenAlex = [];
   List<OpenAlexRankedEntity> topResearchAreasOpenAlex = [];
+  List<OpenAlexRankedEntity> topInstitutionsOpenAlex = [];
+  List<OpenAlexRankedEntity> topCountriesOpenAlex = [];
+  Map<String, int> typeDistribution = {};
+  Map<String, int> oaDistribution = {};
+  Map<String, int> languageDistribution = {};
   List<TopicGrowthInsight> growingTopicsOpenAlex = [];
+  List<String> recentSearches = [];
+  SearchFilters searchFilters = const SearchFilters();
+  SearchSortOption searchSort = SearchSortOption.mostCited;
   double averageCitationOpenAlex = 0;
   int totalOnOpenAlex = 0;
   bool isDashboardLoading = false;
@@ -86,6 +104,42 @@ class PublicationProvider extends ChangeNotifier {
   String get journalPowerInsight =>
       ResearchInsights.journalPowerInsight(topJournalsOpenAlex);
 
+  String get topJournalLabel =>
+      topJournalsOpenAlex.isEmpty ? 'N/A' : topJournalsOpenAlex.first.name;
+
+  String get topAuthorLabel =>
+      topAuthorsOpenAlex.isEmpty ? 'N/A' : topAuthorsOpenAlex.first.name;
+
+  String get topPaperLabel => topPapersOpenAlex.isEmpty
+      ? 'N/A'
+      : topPapersOpenAlex.first.title;
+
+  void updateSearchFilters(SearchFilters filters) {
+    searchFilters = filters;
+    notifyListeners();
+  }
+
+  void updateSearchSort(SearchSortOption sort) {
+    searchSort = sort;
+    notifyListeners();
+  }
+
+  Map<int, int> yearlyTrendForRange(int? yearsBack) {
+    if (yearsBack == null) return yearlyTrendFromOpenAlex;
+    final cutoff = DateTime.now().year - yearsBack + 1;
+    return Map.fromEntries(
+      yearlyTrendFromOpenAlex.entries.where((e) => e.key >= cutoff),
+    );
+  }
+
+  Map<int, int> citationsForRange(int? yearsBack) {
+    if (yearsBack == null) return citationsByYearOpenAlex;
+    final cutoff = DateTime.now().year - yearsBack + 1;
+    return Map.fromEntries(
+      citationsByYearOpenAlex.entries.where((e) => e.key >= cutoff),
+    );
+  }
+
   String get mostActiveYearLabel {
     if (yearlyTrendFromOpenAlex.isEmpty) return 'N/A';
     final peak = yearlyTrendFromOpenAlex.entries
@@ -137,10 +191,14 @@ class PublicationProvider extends ChangeNotifier {
 
   Future<void> searchPublications(String topic) async {
     final generation = ++_searchGeneration;
+    final trimmed = topic.trim();
+    if (trimmed.isEmpty) return;
+
+    recentSearches = await _recentSearchesService.add(trimmed);
 
     isSearchLoading = true;
     scope = AnalysisScope.topic;
-    currentTopic = topic;
+    currentTopic = trimmed;
     errorMessage = null;
     searchListPage = 0;
     searchHasMore = false;
@@ -149,7 +207,12 @@ class PublicationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final works = await _openAlexService.searchPublications(topic);
+      final works = await _openAlexService.fetchSearchPage(
+        trimmed,
+        page: 1,
+        filters: searchFilters,
+        sort: searchSort,
+      );
       if (generation != _searchGeneration) return;
 
       publications = works.publications;
@@ -169,7 +232,31 @@ class PublicationProvider extends ChangeNotifier {
     }
 
     if (generation != _searchGeneration) return;
-    _loadSearchMetricsInBackground(topic, generation);
+    _loadSearchMetricsInBackground(trimmed, generation);
+  }
+
+  Future<void> loadRecentSearches() async {
+    recentSearches = await _recentSearchesService.load();
+    notifyListeners();
+  }
+
+  Future<void> clearRecentSearches() async {
+    recentSearches = await _recentSearchesService.clear();
+    notifyListeners();
+  }
+
+  OpenAlexConfig get openAlexConfig => _config;
+
+  OpenAlexService get openAlexService => _openAlexService;
+
+  Future<void> saveOpenAlexApiKey(String key) async {
+    await _config.saveKey(key);
+    notifyListeners();
+  }
+
+  Future<void> clearOpenAlexApiKey() async {
+    await _config.clearSavedKey();
+    notifyListeners();
   }
 
   void _loadSearchMetricsInBackground(String topic, int generation) {
@@ -201,6 +288,8 @@ class PublicationProvider extends ChangeNotifier {
       final works = await _openAlexService.fetchSearchPage(
         currentTopic,
         page: nextPage,
+        filters: searchFilters,
+        sort: searchSort,
       );
       if (generation != _searchGeneration) return;
 
@@ -271,15 +360,10 @@ class PublicationProvider extends ChangeNotifier {
   }
 
   Future<List<Publication>> loadWorksByAuthor(OpenAlexRankedEntity author) {
-    if (isGlobalScope) {
-      return _openAlexService.fetchWorksByAuthorId(
-        authorId: author.id,
-        globalInfluential: true,
-      );
-    }
     return _openAlexService.fetchWorksByAuthorId(
       authorId: author.id,
-      search: currentTopic,
+      search: isGlobalScope ? null : currentTopic,
+      globalInfluential: false,
     );
   }
 
@@ -287,18 +371,21 @@ class PublicationProvider extends ChangeNotifier {
     OpenAlexRankedEntity author,
     int page,
   ) {
-    if (isGlobalScope) {
-      return _openAlexService.fetchWorksByAuthorIdPage(
-        authorId: author.id,
-        page: page,
-        globalInfluential: true,
-      );
-    }
     return _openAlexService.fetchWorksByAuthorIdPage(
       authorId: author.id,
       page: page,
-      search: currentTopic,
+      search: isGlobalScope ? null : currentTopic,
+      globalInfluential: false,
     );
+  }
+
+  Future<OpenAlexRankedEntity> resolveAuthor(OpenAlexRankedEntity author) async {
+    final ranked = rankedAuthorByName(author.name);
+    if (ranked != null &&
+        OpenAlexService.shortOpenAlexId(ranked.id).isNotEmpty) {
+      return ranked;
+    }
+    return _openAlexService.resolveAuthor(author);
   }
 
   Future<List<Publication>> loadRelatedWorks(Publication publication) {
@@ -309,45 +396,30 @@ class PublicationProvider extends ChangeNotifier {
   }
 
   Future<Map<int, int>> loadConceptTrend(OpenAlexRankedEntity concept) {
-    if (isGlobalScope) {
-      return _openAlexService.fetchConceptYearlyTrend(
-        conceptId: concept.id,
-        globalInfluential: true,
-      );
-    }
     return _openAlexService.fetchConceptYearlyTrend(
       conceptId: concept.id,
-      search: currentTopic,
+      search: isGlobalScope ? null : currentTopic,
+      globalInfluential: false,
     );
   }
 
   Future<List<OpenAlexRankedEntity>> loadConceptTopAuthors(
     OpenAlexRankedEntity concept,
   ) {
-    if (isGlobalScope) {
-      return _openAlexService.fetchConceptTopAuthors(
-        conceptId: concept.id,
-        globalInfluential: true,
-      );
-    }
     return _openAlexService.fetchConceptTopAuthors(
       conceptId: concept.id,
-      search: currentTopic,
+      search: isGlobalScope ? null : currentTopic,
+      globalInfluential: false,
     );
   }
 
   Future<List<OpenAlexRankedEntity>> loadConceptTopJournals(
     OpenAlexRankedEntity concept,
   ) {
-    if (isGlobalScope) {
-      return _openAlexService.fetchConceptTopJournals(
-        conceptId: concept.id,
-        globalInfluential: true,
-      );
-    }
     return _openAlexService.fetchConceptTopJournals(
       conceptId: concept.id,
-      search: currentTopic,
+      search: isGlobalScope ? null : currentTopic,
+      globalInfluential: false,
     );
   }
 
@@ -355,73 +427,47 @@ class PublicationProvider extends ChangeNotifier {
     OpenAlexRankedEntity concept,
     int page,
   ) {
-    if (isGlobalScope) {
-      return _openAlexService.fetchConceptWorksPage(
-        conceptId: concept.id,
-        page: page,
-        globalInfluential: true,
-      );
-    }
     return _openAlexService.fetchConceptWorksPage(
       conceptId: concept.id,
       page: page,
-      search: currentTopic,
+      search: isGlobalScope ? null : currentTopic,
+      globalInfluential: false,
     );
   }
 
   Future<Map<int, int>> loadAuthorTrend(OpenAlexRankedEntity author) {
-    if (isGlobalScope) {
-      return _openAlexService.fetchAuthorYearlyTrend(
-        authorId: author.id,
-        globalInfluential: true,
-      );
-    }
     return _openAlexService.fetchAuthorYearlyTrend(
       authorId: author.id,
-      search: currentTopic,
+      search: isGlobalScope ? null : currentTopic,
+      globalInfluential: false,
     );
   }
 
   Future<List<OpenAlexRankedEntity>> loadAuthorTopJournals(
     OpenAlexRankedEntity author,
   ) {
-    if (isGlobalScope) {
-      return _openAlexService.fetchAuthorTopJournals(
-        authorId: author.id,
-        globalInfluential: true,
-      );
-    }
     return _openAlexService.fetchAuthorTopJournals(
       authorId: author.id,
-      search: currentTopic,
+      search: isGlobalScope ? null : currentTopic,
+      globalInfluential: false,
     );
   }
 
   Future<Map<int, int>> loadJournalTrend(OpenAlexRankedEntity journal) {
-    if (isGlobalScope) {
-      return _openAlexService.fetchSourceYearlyTrend(
-        sourceId: journal.id,
-        globalInfluential: true,
-      );
-    }
     return _openAlexService.fetchSourceYearlyTrend(
       sourceId: journal.id,
-      search: currentTopic,
+      search: isGlobalScope ? null : currentTopic,
+      globalInfluential: false,
     );
   }
 
   Future<List<OpenAlexRankedEntity>> loadJournalTopAuthors(
     OpenAlexRankedEntity journal,
   ) {
-    if (isGlobalScope) {
-      return _openAlexService.fetchSourceTopAuthors(
-        sourceId: journal.id,
-        globalInfluential: true,
-      );
-    }
     return _openAlexService.fetchSourceTopAuthors(
       sourceId: journal.id,
-      search: currentTopic,
+      search: isGlobalScope ? null : currentTopic,
+      globalInfluential: false,
     );
   }
 
@@ -440,15 +486,10 @@ class PublicationProvider extends ChangeNotifier {
   Future<List<Publication>> loadWorksByJournal(
     OpenAlexRankedEntity journal,
   ) {
-    if (isGlobalScope) {
-      return _openAlexService.fetchWorksBySourceId(
-        sourceId: journal.id,
-        globalInfluential: true,
-      );
-    }
     return _openAlexService.fetchWorksBySourceId(
       sourceId: journal.id,
-      search: currentTopic,
+      search: isGlobalScope ? null : currentTopic,
+      globalInfluential: false,
     );
   }
 
@@ -456,17 +497,11 @@ class PublicationProvider extends ChangeNotifier {
     OpenAlexRankedEntity journal,
     int page,
   ) {
-    if (isGlobalScope) {
-      return _openAlexService.fetchWorksBySourceIdPage(
-        sourceId: journal.id,
-        page: page,
-        globalInfluential: true,
-      );
-    }
     return _openAlexService.fetchWorksBySourceIdPage(
       sourceId: journal.id,
       page: page,
-      search: currentTopic,
+      search: isGlobalScope ? null : currentTopic,
+      globalInfluential: false,
     );
   }
 
@@ -482,6 +517,11 @@ class PublicationProvider extends ChangeNotifier {
     topAuthorsOpenAlex = [];
     topJournalsOpenAlex = [];
     topResearchAreasOpenAlex = [];
+    topInstitutionsOpenAlex = [];
+    topCountriesOpenAlex = [];
+    typeDistribution = {};
+    oaDistribution = {};
+    languageDistribution = {};
     growingTopicsOpenAlex = [];
     averageCitationOpenAlex = 0;
     totalOnOpenAlex = 0;
@@ -520,6 +560,7 @@ class PublicationProvider extends ChangeNotifier {
         groupBy: OpenAlexService.groupByAuthor,
         search: search,
         globalInfluential: globalInfluential,
+        limit: 20,
       ),
       [],
     );
@@ -529,8 +570,57 @@ class PublicationProvider extends ChangeNotifier {
         groupBy: OpenAlexService.groupByJournal,
         search: search,
         globalInfluential: globalInfluential,
+        limit: 20,
       ),
       [],
+    );
+
+    topInstitutionsOpenAlex = await _tryAggregate(
+      () => _openAlexService.fetchWorksGroupedCounts(
+        groupBy: OpenAlexService.groupByInstitution,
+        search: search,
+        globalInfluential: globalInfluential,
+        limit: 20,
+      ),
+      [],
+    );
+
+    topCountriesOpenAlex = await _tryAggregate(
+      () => _openAlexService.fetchWorksGroupedCounts(
+        groupBy: OpenAlexService.groupByCountry,
+        search: search,
+        globalInfluential: globalInfluential,
+        limit: 20,
+      ),
+      [],
+    );
+
+    typeDistribution = await _tryAggregate(
+      () => _openAlexService.fetchDistribution(
+        groupBy: OpenAlexService.groupByType,
+        search: search,
+        globalInfluential: globalInfluential,
+      ),
+      {},
+    );
+
+    oaDistribution = await _tryAggregate(
+      () => _openAlexService.fetchDistribution(
+        groupBy: OpenAlexService.groupByOpenAccess,
+        search: search,
+        globalInfluential: globalInfluential,
+        limit: 4,
+      ),
+      {},
+    );
+
+    languageDistribution = await _tryAggregate(
+      () => _openAlexService.fetchDistribution(
+        groupBy: OpenAlexService.groupByLanguage,
+        search: search,
+        globalInfluential: globalInfluential,
+      ),
+      {},
     );
 
     topResearchAreasOpenAlex = await _tryAggregate(
@@ -557,7 +647,7 @@ class PublicationProvider extends ChangeNotifier {
       () => _openAlexService.fetchTopPapers(
         search: search,
         globalInfluential: globalInfluential,
-        limit: 10,
+        limit: 20,
       ),
       [],
     );

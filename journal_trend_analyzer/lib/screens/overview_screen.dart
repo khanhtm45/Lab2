@@ -5,11 +5,19 @@ import '../models/openalex_ranked_entity.dart';
 import '../providers/publication_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/count_format.dart';
+import '../widgets/citation_bar_chart.dart';
+import '../widgets/dashboard_card.dart';
+import '../widgets/research_landscape_grid.dart';
+import '../widgets/trend_chart.dart';
+import '../widgets/app_loading_view.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/error_banner.dart';
+import 'author_detail_screen.dart';
 import 'citation_leaders_screen.dart';
+import 'detail_screen.dart';
 import 'domain_detail_screen.dart';
 import 'growth_screen.dart';
+import 'journal_detail_screen.dart';
 import 'journals_analysis_screen.dart';
 import 'research_domains_screen.dart';
 
@@ -24,10 +32,14 @@ class OverviewScreen extends StatelessWidget {
     return SafeArea(
       child: Column(
         children: [
-          const JournalAiAppBar(showRefresh: true, showBell: true),
+          const JournalAiAppBar(showRefresh: true, showBell: false),
           if (provider.isDashboardLoading && !provider.hasData)
             const Expanded(
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              child: AppLoadingView(
+                fillScreen: false,
+                expand: true,
+                message: 'Loading research data...',
+              ),
             )
           else if (provider.errorMessage != null && !provider.hasData)
             Expanded(
@@ -41,7 +53,11 @@ class OverviewScreen extends StatelessWidget {
             )
           else if (!provider.hasData)
             const Expanded(
-              child: Center(child: Text('Loading research data...')),
+              child: AppLoadingView(
+                fillScreen: false,
+                expand: true,
+                message: 'Loading research data...',
+              ),
             )
           else
             Expanded(
@@ -59,7 +75,131 @@ class OverviewScreen extends StatelessWidget {
                         ),
                       ),
                     const Text(
-                      'Global Research Overview',
+                      'Research Dashboard',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Current Topic: ${provider.currentTopic}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 1.15,
+                      children: [
+                        DashboardCard(
+                          title: 'Total Publications',
+                          value: formatOpenAlexCount(provider.totalOnOpenAlex),
+                          icon: Icons.article_outlined,
+                        ),
+                        DashboardCard(
+                          title: 'Average Citations',
+                          value: provider.averageCitationOpenAlex.toStringAsFixed(1),
+                          icon: Icons.format_quote_outlined,
+                        ),
+                        DashboardCard(
+                          title: 'Most Active Year',
+                          value: provider.mostActiveYearLabel,
+                          icon: Icons.calendar_today_outlined,
+                        ),
+                        DashboardCard(
+                          title: 'Top Journal',
+                          value: provider.topJournalLabel,
+                          icon: Icons.menu_book_outlined,
+                          onTap: provider.topJournalsOpenAlex.isEmpty
+                              ? null
+                              : () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => JournalDetailScreen(
+                                        journal: provider.topJournalsOpenAlex.first,
+                                        provider: provider,
+                                      ),
+                                    ),
+                                  ),
+                        ),
+                        DashboardCard(
+                          title: 'Top Author',
+                          value: provider.topAuthorLabel,
+                          icon: Icons.person_outline,
+                          onTap: provider.topAuthorsOpenAlex.isEmpty
+                              ? null
+                              : () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => AuthorDetailScreen(
+                                        author: provider.topAuthorsOpenAlex.first,
+                                        provider: provider,
+                                      ),
+                                    ),
+                                  ),
+                        ),
+                        DashboardCard(
+                          title: 'Most Influential Paper',
+                          value: provider.topPaperLabel,
+                          icon: Icons.emoji_events_outlined,
+                          onTap: provider.topPapersOpenAlex.isEmpty
+                              ? null
+                              : () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => DetailScreen(
+                                        publication: provider.topPapersOpenAlex.first,
+                                      ),
+                                    ),
+                                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Publication Growth',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.4,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    MockupCard(
+                      padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
+                      child: TrendChart(
+                        yearlyData: provider.yearlyTrendFromOpenAlex,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Citation Growth',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.4,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    MockupCard(
+                      padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
+                      child: CitationBarChart(
+                        yearlyData: provider.citationsByYearOpenAlex,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Quick Insights',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -68,6 +208,53 @@ class OverviewScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
+                    MockupCard(
+                      child: Column(
+                        children: [
+                          _QuickInsightRow(
+                            label: 'Top Journal',
+                            value: provider.topJournalLabel,
+                            onTap: provider.topJournalsOpenAlex.isEmpty
+                                ? null
+                                : () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const JournalsAnalysisScreen(),
+                                      ),
+                                    ),
+                          ),
+                          const Divider(height: 1),
+                          _QuickInsightRow(
+                            label: 'Top Author',
+                            value: provider.topAuthorLabel,
+                            onTap: provider.topAuthorsOpenAlex.isEmpty
+                                ? null
+                                : () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const CitationLeadersScreen(),
+                                      ),
+                                    ),
+                          ),
+                          const Divider(height: 1),
+                          _QuickInsightRow(
+                            label: 'Top Paper',
+                            value: provider.topPaperLabel,
+                            onTap: provider.topPapersOpenAlex.isEmpty
+                                ? null
+                                : () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => DetailScreen(
+                                          publication: provider.topPapersOpenAlex.first,
+                                        ),
+                                      ),
+                                    ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
                     MockupCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,6 +323,36 @@ class OverviewScreen extends StatelessWidget {
                             ],
                           ),
                         ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    const Text(
+                      'Research Domains Map',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.4,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Tap a domain to explore its research profile',
+                      style: TextStyle(
+                        color: AppColors.textTertiary,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    MockupCard(
+                      child: ResearchLandscapeGrid(
+                        domains: provider.trendingAreas,
+                        onDomainTap: (domain) => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DomainDetailScreen(domain: domain),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 28),
@@ -311,6 +528,62 @@ class OverviewScreen extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _QuickInsightRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final VoidCallback? onTap;
+
+  const _QuickInsightRow({
+    required this.label,
+    required this.value,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (onTap != null)
+              const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.textTertiary,
+              ),
+          ],
+        ),
       ),
     );
   }

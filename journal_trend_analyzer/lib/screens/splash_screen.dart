@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/publication_provider.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_logo.dart';
+import '../widgets/app_loading_view.dart';
 import 'main_shell.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -33,48 +33,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const AppLogo(size: 88),
-            const SizedBox(height: 20),
-            const Text(
-              'JournalAI',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Research Intelligence',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 48),
-            const SizedBox(
-              width: 160,
-              child: LinearProgressIndicator(
-                minHeight: 2,
-                backgroundColor: AppColors.surfaceMuted,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Loading research data...',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
+      backgroundColor: AppColors.background,
+      body: AppLoadingView(
+        message: 'Loading research data...',
+        size: 260,
       ),
     );
   }

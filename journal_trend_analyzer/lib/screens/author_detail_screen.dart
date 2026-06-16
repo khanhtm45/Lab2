@@ -8,6 +8,7 @@ import '../providers/publication_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/count_format.dart';
 import '../utils/research_insights.dart';
+import '../widgets/app_loading_view.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/insight_widgets.dart';
 import '../widgets/load_more_footer.dart';
@@ -35,6 +36,7 @@ class _AuthorDetailScreenState extends State<AuthorDetailScreen> {
   List<OpenAlexRankedEntity> _journals = [];
   Map<int, int> _trend = {};
   TrendInsight? _insight;
+  OpenAlexRankedEntity? _author;
   int _totalCount = 0;
   int _page = 0;
   bool _hasMore = false;
@@ -57,10 +59,13 @@ class _AuthorDetailScreenState extends State<AuthorDetailScreen> {
     });
 
     try {
+      final resolved = await widget.provider.resolveAuthor(widget.author);
+      if (!mounted) return;
+
       final results = await Future.wait([
-        widget.provider.loadWorksByAuthorPage(widget.author, 1),
-        widget.provider.loadAuthorTrend(widget.author),
-        widget.provider.loadAuthorTopJournals(widget.author),
+        widget.provider.loadWorksByAuthorPage(resolved, 1),
+        widget.provider.loadAuthorTrend(resolved),
+        widget.provider.loadAuthorTopJournals(resolved),
       ]);
 
       if (!mounted) return;
@@ -69,15 +74,18 @@ class _AuthorDetailScreenState extends State<AuthorDetailScreen> {
       final trend = results[1] as Map<int, int>;
 
       setState(() {
+        _author = resolved;
         _papers = papersResult.publications;
-        _totalCount = papersResult.totalOnOpenAlex;
+        _totalCount = papersResult.totalOnOpenAlex > 0
+            ? papersResult.totalOnOpenAlex
+            : resolved.count;
         _page = 1;
         _hasMore = papersResult.hasMore(_papers.length);
         _trend = trend;
         _journals = results[2] as List<OpenAlexRankedEntity>;
         _insight = ResearchInsights.analyzeTrend(
           volumeByYear: trend,
-          topicLabel: widget.author.name,
+          topicLabel: resolved.name,
         );
         _loading = false;
       });
@@ -96,8 +104,9 @@ class _AuthorDetailScreenState extends State<AuthorDetailScreen> {
     setState(() => _loadingMore = true);
 
     try {
+      final author = _author ?? widget.author;
       final result = await widget.provider.loadWorksByAuthorPage(
-        widget.author,
+        author,
         _page + 1,
       );
       if (!mounted) return;
@@ -123,14 +132,19 @@ class _AuthorDetailScreenState extends State<AuthorDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final author = _author ?? widget.author;
     final totalCount =
-        _totalCount > 0 ? _totalCount : widget.author.count;
+        _totalCount > 0 ? _totalCount : author.count;
     final insight = _insight;
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.author.name)),
+      appBar: AppBar(title: Text(author.name)),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoadingView(
+              fillScreen: false,
+              expand: true,
+              message: 'Loading author data...',
+            )
           : _error != null && _papers.isEmpty
               ? Center(
                   child: Column(
@@ -230,7 +244,12 @@ class _AuthorDetailScreenState extends State<AuthorDetailScreen> {
                     ),
                     const SizedBox(height: 8),
                     if (_papers.isEmpty)
-                      const Text('No papers found on OpenAlex.')
+                      Text(
+                        widget.provider.isGlobalScope
+                            ? 'No papers found on OpenAlex for this author.'
+                            : 'No papers by this author in topic "${widget.provider.currentTopic}". Try global dashboard for all works.',
+                        style: const TextStyle(color: AppColors.textSecondary),
+                      )
                     else ...[
                       ..._papers.map(
                         (paper) => PublicationCard(publication: paper),

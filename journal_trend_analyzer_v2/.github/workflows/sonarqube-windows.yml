@@ -1,0 +1,56 @@
+name: SonarQube Analysis (Windows)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  sonarqube:
+    name: SonarQube Scan (Windows)
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Debug - Verify directory
+        shell: cmd
+        run: |
+          echo Current directory: %CD%
+          dir
+      
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.6'
+          channel: 'stable'
+      
+      - name: Get dependencies
+        shell: cmd
+        run: flutter pub get
+      
+      - name: Analyze code
+        shell: cmd
+        run: flutter analyze
+      
+      - name: Run tests (optional)
+        shell: cmd
+        run: flutter test --coverage || echo Tests failed, continuing...
+        continue-on-error: true
+      
+      - name: SonarQube Scan
+        shell: cmd
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          echo Running SonarQube Scanner...
+          sonar-scanner.bat -Dsonar.projectKey=journal_trend_analyzer_v2 -Dsonar.sources=lib -Dsonar.tests=test -Dsonar.host.url=%SONAR_HOST_URL% -Dsonar.login=%SONAR_TOKEN%

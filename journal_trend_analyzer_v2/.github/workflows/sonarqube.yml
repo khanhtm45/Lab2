@@ -12,13 +12,28 @@ on:
 jobs:
   sonarqube:
     name: SonarQube Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # ✅ Use ubuntu instead of windows
+    
+    defaults:
+      run:
+        shell: bash  # ✅ Force bash shell
+    defaults:
+      run:
+        shell: bash  # ✅ Force bash shell
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Shallow clones should be disabled for better analysis
+      
+      - name: Debug - Verify directory
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          echo "Checking pubspec.yaml:"
+          cat pubspec.yaml | head -5
       
       - name: Set up Flutter
         uses: subosito/flutter-action@v2

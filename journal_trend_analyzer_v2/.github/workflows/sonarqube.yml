@@ -17,6 +17,7 @@ jobs:
     defaults:
       run:
         shell: bash
+        working-directory: ./journal_trend_analyzer_v2  # ✅ Set working directory
     
     steps:
       - name: Checkout code
@@ -32,16 +33,16 @@ jobs:
           echo "Repository: ${{ github.repository }}"
           echo "Working directory: $(pwd)"
           echo ""
-          echo "=== Directory Contents ==="
+          echo "=== Root Directory Contents ==="
+          cd ${{ github.workspace }}
+          ls -la
+          echo ""
+          echo "=== Flutter Project Directory ==="
+          cd journal_trend_analyzer_v2
           ls -la
           echo ""
           echo "=== Pubspec.yaml ==="
-          if [ -f "pubspec.yaml" ]; then
-            cat pubspec.yaml | head -10
-          else
-            echo "ERROR: pubspec.yaml not found!"
-            exit 1
-          fi
+          cat pubspec.yaml | head -10
       
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -71,6 +72,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
+          projectBaseDir: journal_trend_analyzer_v2
           args: >
             -Dsonar.projectKey=journal_trend_analyzer_v2
             -Dsonar.sources=lib

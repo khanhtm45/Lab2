@@ -12,34 +12,48 @@ on:
 jobs:
   sonarqube:
     name: SonarQube Scan
-    runs-on: ubuntu-latest  # ✅ Use ubuntu instead of windows
+    runs-on: ubuntu-latest
     
     defaults:
       run:
-        shell: bash  # ✅ Force bash shell
-    defaults:
-      run:
-        shell: bash  # ✅ Force bash shell
+        shell: bash
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for better analysis
+          fetch-depth: 0
       
-      - name: Debug - Verify directory
+      - name: Debug - Show environment
         run: |
-          echo "Current directory: $(pwd)"
-          echo "Directory contents:"
+          echo "=== Environment Debug ==="
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Workspace: ${{ github.workspace }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Working directory: $(pwd)"
+          echo ""
+          echo "=== Directory Contents ==="
           ls -la
-          echo "Checking pubspec.yaml:"
-          cat pubspec.yaml | head -5
+          echo ""
+          echo "=== Pubspec.yaml ==="
+          if [ -f "pubspec.yaml" ]; then
+            cat pubspec.yaml | head -10
+          else
+            echo "ERROR: pubspec.yaml not found!"
+            exit 1
+          fi
       
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.44.6'
           channel: 'stable'
+          cache: true
+      
+      - name: Verify Flutter installation
+        run: |
+          flutter --version
+          flutter doctor -v
       
       - name: Get dependencies
         run: flutter pub get

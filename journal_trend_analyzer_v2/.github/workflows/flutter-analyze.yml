@@ -11,6 +11,10 @@ jobs:
     name: Analyze Flutter Code
     runs-on: ubuntu-latest
     
+    defaults:
+      run:
+        working-directory: ./journal_trend_analyzer_v2  # ✅ Set working directory
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -43,7 +47,7 @@ jobs:
         uses: codecov/codecov-action@v3
         if: success()
         with:
-          files: ./coverage/lcov.info
+          files: ./journal_trend_analyzer_v2/coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false

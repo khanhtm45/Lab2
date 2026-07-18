@@ -1,6 +1,8 @@
-# Journal Trend Analyzer
+# Journal Trend Analyzer v2
 
 ## PRM393 - Mobile Programming Lab 02
+
+> **Codebase:** `journal_trend_analyzer_v2/` — Flutter app với Material 3, Provider, OpenAlex API, 30 BI charts.
 
 ---
 
@@ -13,49 +15,61 @@ Người dùng có thể:
 * Tìm kiếm chủ đề nghiên cứu
 * Xem bài báo khoa học
 * Phân tích xu hướng công bố
-* Tìm tác giả nổi bật
-* Tìm tạp chí nổi bật
-* Xem dashboard thống kê
+* Tìm tác giả / tạp chí nổi bật
+* Xem dashboard thống kê và 30 BI visualizations
+* Dark mode (Settings → Appearance)
 
 ---
 
 # 2. Design Theme
 
-## Academic Blue Theme
+## Academic Analytics Theme (v2)
 
-### Colors
+### Colors — Light
 
 ```text
-Primary      #2563EB
-Secondary    #3B82F6
-Accent        #60A5FA
-Background    #F8FAFC
-Card          #FFFFFF
-Text          #0F172A
+Primary      #1E3A8A  (navy)
+Secondary    #4F46E5  (indigo)
+Accent       #14B8A6  (teal)
+Citation     #F59E0B  (amber)
+Background   #F8FAFC
+Surface      #FFFFFF
+Text         #0F172A
+```
+
+### Colors — Dark
+
+```text
+Background   #0F172A
+Surface      #1E293B
+Primary      #818CF8
+Accent       #2DD4BF
+Text         #F8FAFC
 ```
 
 ### Design Style
 
 * Academic Analytics Platform
-* Google Scholar Inspired
-* IEEE Xplore Inspired
-* Scopus Inspired
-* Modern Dashboard
-* Clean UI
-* Professional
+* Material Design 3
+* Theme-aware via `AppPalette` / `context.palette`
+* Clean dashboard + interactive charts (`fl_chart`)
 
 ---
 
 # 3. Navigation Structure
 
 ```text
-Bottom Navigation
+Bottom Navigation (4 tabs)
 
-Dashboard
-Search
-Trends
-Insights
-Explore
+Home        — Search, popular topics, recent searches
+Journal     — Publication results + filters
+Analysis    — Research dashboard, trends, explore
+Profile     — Settings, OpenAlex API, About
+
+Analysis → Explore
+  ├── BI Catalog (30 items)
+  ├── Open All Charts (Advanced Analytics)
+  └── Trending topics
 ```
 
 ---
